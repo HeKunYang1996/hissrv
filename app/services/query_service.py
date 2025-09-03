@@ -162,22 +162,20 @@ class QueryService:
             
             # 构建统计查询
             aggregation_func = {
-                'mean': 'mean()',
-                'sum': 'sum()',
-                'min': 'min()',
-                'max': 'max()',
-                'count': 'count()'
-            }.get(request.aggregation, 'mean()')
+                'mean': 'mean',
+                'sum': 'sum',
+                'min': 'min',
+                'max': 'max',
+                'count': 'count'
+            }.get(request.aggregation, 'mean')
             
-            query = f'''
-            from(bucket: "{self.bucket}")
-            {self._build_time_filter(request.start_time, request.end_time)}
-            |> filter(fn: (r) => r.redis_key == "{request.redis_key}")
-            |> filter(fn: (r) => r.point_id == "{request.point_id}")
-            |> filter(fn: (r) => r._field == "value")
-            |> aggregateWindow(every: {request.interval}, fn: {aggregation_func})
-            |> sort(columns: ["_time"])
-            '''
+            query = f'''from(bucket: "{self.bucket}")
+|> range(start: {request.start_time.isoformat()}Z, stop: {request.end_time.isoformat()}Z)
+|> filter(fn: (r) => r.redis_key == "{request.redis_key}")
+|> filter(fn: (r) => r.point_id == "{request.point_id}")
+|> filter(fn: (r) => r._field == "value")
+|> aggregateWindow(every: {request.interval}, fn: {aggregation_func}, createEmpty: false)
+|> sort(columns: ["_time"])'''
             
             logger.debug(f"执行统计查询: {query}")
             results = influxdb_manager.query_data(query)

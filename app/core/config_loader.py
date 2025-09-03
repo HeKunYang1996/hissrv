@@ -148,6 +148,7 @@ class ConfigLoader:
             'influxdb_url': self.get_config('influxdb.url'),
             'influxdb_bucket': self.get_config('influxdb.bucket'),
             'data_collection_interval': self.get_config('scheduler.data_collection.interval', 5),
+            'data_flush_interval': self.get_config('scheduler.data_collection.flush_interval', 5),
             'data_batch_size': self.get_config('scheduler.data_collection.batch_size', 1000),
             'redis_patterns_count': len(self.get_config('redis_source.subscribe_patterns', [])),
             'api_prefix': self.get_config('api.prefix', '/hisApi'),
@@ -157,6 +158,10 @@ class ConfigLoader:
     def get_data_collection_interval(self) -> int:
         """获取数据收集间隔"""
         return self.get_config('scheduler.data_collection.interval', 5)
+    
+    def get_data_flush_interval(self) -> int:
+        """获取数据写入InfluxDB的间隔"""
+        return self.get_config('scheduler.data_collection.flush_interval', 5)
     
     def get_data_batch_size(self) -> int:
         """获取数据批量大小"""

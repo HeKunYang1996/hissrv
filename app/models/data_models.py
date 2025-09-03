@@ -94,10 +94,7 @@ class HealthStatus(BaseModel):
 
 class DataMetrics(BaseModel):
     """数据指标模型"""
-    total_points: int = Field(..., description="总数据点数")
-    points_today: int = Field(..., description="今日数据点数")
-    points_last_hour: int = Field(..., description="最近一小时数据点数")
-    storage_size: int = Field(..., description="存储大小(字节)")
+    total_points: int = Field(..., description="数据库中实际存储的数据条数")
     latest_timestamp: Optional[datetime] = Field(None, description="最新数据时间戳")
     channels_count: int = Field(..., description="通道数量")
     active_channels: int = Field(..., description="活跃通道数量")

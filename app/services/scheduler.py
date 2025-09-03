@@ -6,8 +6,9 @@
 import asyncio
 import schedule
 import time
+import threading
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from threading import Thread
 from loguru import logger
 
@@ -23,11 +24,19 @@ class SchedulerService:
     def __init__(self):
         self.is_running = False
         self.scheduler_thread: Optional[Thread] = None
+        
+        # 数据缓冲区，用于暂存收集的数据
+        self.data_buffer: List[Any] = []
+        self.buffer_lock = threading.Lock()
+        
         self.stats = {
             "last_collection_time": None,
             "last_collection_count": 0,
+            "last_flush_time": None,
+            "last_flush_count": 0,
             "total_collections": 0,
             "total_stored_points": 0,
+            "buffer_size": 0,
             "last_cleanup_time": None,
             "errors": []
         }
@@ -67,11 +76,16 @@ class SchedulerService:
     
     def _setup_schedules(self):
         """设置定时任务"""
-        # 数据收集任务
+        # 数据收集任务（收集到缓冲区）
         if config_loader.is_scheduler_task_enabled('data_collection'):
-            interval = config_loader.get_data_collection_interval()
-            schedule.every(interval).seconds.do(self._collect_and_store_data)
-            logger.info(f"设置数据收集任务，间隔: {interval} 秒")
+            collection_interval = config_loader.get_data_collection_interval()
+            schedule.every(collection_interval).seconds.do(self._collect_data_to_buffer)
+            logger.info(f"设置数据收集任务，间隔: {collection_interval} 秒")
+            
+            # 数据刷新任务（从缓冲区写入InfluxDB）
+            flush_interval = config_loader.get_data_flush_interval()
+            schedule.every(flush_interval).seconds.do(self._flush_buffer_to_storage)
+            logger.info(f"设置数据刷新任务，间隔: {flush_interval} 秒")
         
         # 健康检查任务
         if config_loader.is_scheduler_task_enabled('health_check'):
@@ -157,6 +171,89 @@ class SchedulerService:
                 "time": datetime.utcnow(),
                 "error": str(e),
                 "type": "collection"
+            })
+    
+    def _collect_data_to_buffer(self):
+        """收集数据到缓冲区"""
+        try:
+            logger.debug("开始数据收集任务")
+            start_time = time.time()
+            
+            # 收集数据
+            history_data = data_collector.collect_all_data()
+            
+            if not history_data:
+                logger.debug("没有收集到新数据")
+                return
+            
+            # 添加数据到缓冲区
+            with self.buffer_lock:
+                self.data_buffer.extend(history_data)
+                self.stats["buffer_size"] = len(self.data_buffer)
+            
+            # 更新统计信息
+            elapsed_time = time.time() - start_time
+            self.stats["last_collection_time"] = datetime.utcnow()
+            self.stats["last_collection_count"] = len(history_data)
+            self.stats["total_collections"] += 1
+            
+            logger.debug(f"数据收集完成: 收集 {len(history_data)} 条, "
+                        f"缓冲区总数 {self.stats['buffer_size']} 条, "
+                        f"耗时 {elapsed_time:.2f} 秒")
+                
+        except Exception as e:
+            logger.error(f"数据收集任务失败: {e}")
+            self.stats["errors"].append({
+                "time": datetime.utcnow(),
+                "error": str(e),
+                "type": "collection"
+            })
+    
+    def _flush_buffer_to_storage(self):
+        """将缓冲区数据刷新到存储"""
+        try:
+            # 获取缓冲区中的所有数据
+            with self.buffer_lock:
+                if not self.data_buffer:
+                    logger.debug("缓冲区为空，跳过刷新")
+                    return
+                
+                data_to_flush = self.data_buffer.copy()
+                self.data_buffer.clear()
+                self.stats["buffer_size"] = 0
+            
+            logger.debug(f"开始刷新 {len(data_to_flush)} 条数据到InfluxDB")
+            start_time = time.time()
+            
+            # 批量存储数据
+            result = data_storage.store_batch_data(data_to_flush)
+            
+            # 更新统计信息
+            elapsed_time = time.time() - start_time
+            self.stats["last_flush_time"] = datetime.utcnow()
+            self.stats["last_flush_count"] = len(data_to_flush)
+            self.stats["total_stored_points"] += result["success"]
+            
+            logger.info(f"数据刷新完成: 刷新 {len(data_to_flush)} 条, "
+                       f"存储成功 {result['success']} 条, "
+                       f"失败 {result['failed']} 条, "
+                       f"耗时 {elapsed_time:.2f} 秒")
+            
+            # 记录错误
+            if result["errors"]:
+                for error in result["errors"]:
+                    self.stats["errors"].append({
+                        "time": datetime.utcnow(),
+                        "error": str(error),
+                        "type": "flush"
+                    })
+                
+        except Exception as e:
+            logger.error(f"数据刷新任务失败: {e}")
+            self.stats["errors"].append({
+                "time": datetime.utcnow(),
+                "error": str(e),
+                "type": "flush"
             })
     
     def _health_check(self):

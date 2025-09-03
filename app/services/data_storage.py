@@ -10,6 +10,7 @@ from influxdb_client import Point
 
 from ..core.influxdb import influxdb_manager
 from ..core.config_loader import config_loader
+from ..core.config import settings
 from ..models.data_models import HistoryData
 
 class DataStorage:
@@ -155,7 +156,6 @@ class DataStorage:
         stats = {
             "total_measurements": 0,
             "total_points": 0,
-            "storage_size": 0,
             "oldest_timestamp": None,
             "newest_timestamp": None,
             "measurements": {}
@@ -166,32 +166,61 @@ class DataStorage:
                 return stats
             
             # 查询总的数据点数
-            query = f'''
-            from(bucket: "{influxdb_manager.client._bucket}")
-            |> range(start: 0)
-            |> count()
-            |> group()
-            |> sum()
-            '''
+            query = f'''from(bucket: "{settings.INFLUXDB_BUCKET}")
+|> range(start: 0)
+|> filter(fn: (r) => r._field == "value")
+|> count()
+|> group()
+|> sum()'''
             
+            logger.debug(f"查询总数据点数: {query}")
             result = influxdb_manager.query_data(query)
-            if result:
+            if result and len(result) > 0:
                 stats["total_points"] = result[0].get("_value", 0)
             
-            # 查询所有measurement的统计
+            # 查询最早和最新时间戳
             try:
-                query = f'''
-                from(bucket: "{influxdb_manager.client._bucket}")
-                |> range(start: 0)
-                |> group(columns: ["_measurement"])
-                |> count()
-                '''
+                # 查询最新时间戳
+                query_latest = f'''from(bucket: "{settings.INFLUXDB_BUCKET}")
+|> range(start: 0)
+|> filter(fn: (r) => r._field == "value")
+|> last()
+|> keep(columns: ["_time"])'''
                 
-                results = influxdb_manager.query_data(query)
-                for result in results:
+                latest_result = influxdb_manager.query_data(query_latest)
+                if latest_result and len(latest_result) > 0:
+                    stats["newest_timestamp"] = latest_result[0].get("_time")
+                
+                # 查询最早时间戳
+                query_earliest = f'''from(bucket: "{settings.INFLUXDB_BUCKET}")
+|> range(start: 0)
+|> filter(fn: (r) => r._field == "value")
+|> first()
+|> keep(columns: ["_time"])'''
+                
+                earliest_result = influxdb_manager.query_data(query_earliest)
+                if earliest_result and len(earliest_result) > 0:
+                    stats["oldest_timestamp"] = earliest_result[0].get("_time")
+                        
+            except Exception as e:
+                logger.error(f"查询时间戳统计失败: {e}")
+            
+            # 查询各个measurement的统计
+            try:
+                query_measurements = f'''from(bucket: "{settings.INFLUXDB_BUCKET}")
+|> range(start: 0)
+|> filter(fn: (r) => r._field == "value")
+|> group(columns: ["_measurement"])
+|> count()
+|> group()'''
+                
+                measurements_result = influxdb_manager.query_data(query_measurements)
+                for result in measurements_result:
                     measurement = result.get("_measurement", "unknown")
                     count = result.get("_value", 0)
                     stats["measurements"][measurement] = count
+                    
+                stats["total_measurements"] = len(stats["measurements"])
                         
             except Exception as e:
                 logger.error(f"查询measurement统计失败: {e}")
