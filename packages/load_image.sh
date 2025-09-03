@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Docker镜像加载脚本
+# Docker镜像加载脚本 - 历史数据服务
 # 用于在工控机上加载预构建的aarch64镜像
 
-echo "📦 加载Docker镜像..."
+echo "📦 加载历史数据服务Docker镜像..."
 
 # 检查镜像文件是否存在
-IMAGE_FILES=$(ls voltageems-netsrv-*.tar.gz 2>/dev/null | wc -l)
+IMAGE_FILES=$(ls voltageems-hissrv-*.tar.gz 2>/dev/null | wc -l)
 if [ "$IMAGE_FILES" -eq 0 ]; then
-    echo "❌ 镜像文件 voltageems-netsrv-*.tar.gz 不存在"
+    echo "❌ 镜像文件 voltageems-hissrv-*.tar.gz 不存在"
     echo "请确保镜像文件在当前目录中"
     exit 1
 fi
@@ -21,17 +21,17 @@ fi
 
 # 停止并删除现有容器
 echo "🛑 停止并删除现有容器..."
-docker stop $(docker ps -q --filter "name=voltageems-netsrv") 2>/dev/null || true
-docker rm $(docker ps -aq --filter "name=voltageems-netsrv") 2>/dev/null || true
+docker stop $(docker ps -q --filter "name=voltageems-hissrv") 2>/dev/null || true
+docker rm $(docker ps -aq --filter "name=voltageems-hissrv") 2>/dev/null || true
 
 # 删除现有镜像
 echo "🗑️  删除现有镜像..."
-docker rmi $(docker images -q "voltageems-netsrv*") 2>/dev/null || true
+docker rmi $(docker images -q "voltageems-hissrv*") 2>/dev/null || true
 
 # 查找镜像文件
-IMAGE_FILE=$(ls voltageems-netsrv-*.tar.gz | head -1)
+IMAGE_FILE=$(ls voltageems-hissrv-*.tar.gz | head -1)
 if [ -z "$IMAGE_FILE" ]; then
-    echo "❌ 未找到voltageems-netsrv镜像文件"
+    echo "❌ 未找到voltageems-hissrv镜像文件"
     exit 1
 fi
 
@@ -42,17 +42,17 @@ echo "🔄 正在加载镜像..."
 docker load < "$IMAGE_FILE"
 
 # 检查镜像是否加载成功
-if docker images | grep -q "voltageems-netsrv"; then
+if docker images | grep -q "voltageems-hissrv"; then
     echo "✅ 镜像加载成功！"
     echo "📋 可用镜像:"
-    docker images | grep voltageems-netsrv
+    docker images | grep voltageems-hissrv
     
     # 自动为最新加载的镜像创建latest标签
     echo "🏷️  创建latest标签..."
-    LATEST_IMAGE=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "voltageems-netsrv" | grep -v latest | head -1)
+    LATEST_IMAGE=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "voltageems-hissrv" | grep -v latest | head -1)
     if [ -n "$LATEST_IMAGE" ]; then
-        docker tag "$LATEST_IMAGE" "voltageems-netsrv:latest"
-        echo "✅ 已创建latest标签: $LATEST_IMAGE -> voltageems-netsrv:latest"
+        docker tag "$LATEST_IMAGE" "voltageems-hissrv:latest"
+        echo "✅ 已创建latest标签: $LATEST_IMAGE -> voltageems-hissrv:latest"
     fi
 else
     echo "❌ 镜像加载失败"

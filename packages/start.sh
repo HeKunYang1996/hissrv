@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# 网络服务启动脚本 - 简化版
+# 历史数据服务启动脚本 - 简化版
 # 适用于aarch64架构的工控机
 
-echo "🚀 启动网络服务..."
+echo "🚀 启动历史数据服务..."
 
 # 检查Docker是否安装
 if ! command -v docker &> /dev/null; then
@@ -26,11 +26,11 @@ fi
 # 智能选择可用的镜像版本
 echo "🔍 查找可用的镜像版本..."
 
-# 查找所有voltageems-netsrv镜像
-AVAILABLE_IMAGES=$(docker images --format "table {{.Repository}}:{{.Tag}}" | grep "voltageems-netsrv" | grep -v "REPOSITORY" | head -10)
+# 查找所有voltageems-hissrv镜像
+AVAILABLE_IMAGES=$(docker images --format "table {{.Repository}}:{{.Tag}}" | grep "voltageems-hissrv" | grep -v "REPOSITORY" | head -10)
 
 if [ -z "$AVAILABLE_IMAGES" ]; then
-    echo "❌ 未找到voltageems-netsrv镜像"
+    echo "❌ 未找到voltageems-hissrv镜像"
     echo "💡 请先运行 ./load_image.sh 加载镜像"
     exit 1
 fi
@@ -40,12 +40,12 @@ echo "$AVAILABLE_IMAGES"
 
 # 智能选择镜像优先级：latest > 最新版本号 > 第一个可用的
 IMAGE_NAME=""
-if echo "$AVAILABLE_IMAGES" | grep -q "voltageems-netsrv:latest"; then
-    IMAGE_NAME="voltageems-netsrv:latest"
+if echo "$AVAILABLE_IMAGES" | grep -q "voltageems-hissrv:latest"; then
+    IMAGE_NAME="voltageems-hissrv:latest"
     echo "✅ 使用latest版本"
 else
     # 尝试找到版本号最高的镜像
-    VERSIONED_IMAGES=$(echo "$AVAILABLE_IMAGES" | grep -E "voltageems-netsrv:[0-9]+\.[0-9]+\.[0-9]+")
+    VERSIONED_IMAGES=$(echo "$AVAILABLE_IMAGES" | grep -E "voltageems-hissrv:[0-9]+\.[0-9]+\.[0-9]+")
     if [ -n "$VERSIONED_IMAGES" ]; then
         # 按版本号排序，选择最新的
         IMAGE_NAME=$(echo "$VERSIONED_IMAGES" | sort -V -r | head -1)
@@ -59,8 +59,8 @@ fi
 
 # 停止现有容器
 echo "🛑 停止现有容器..."
-docker stop voltageems-netsrv 2>/dev/null || true
-docker rm voltageems-netsrv 2>/dev/null || true
+docker stop voltageems-hissrv 2>/dev/null || true
+docker rm voltageems-hissrv 2>/dev/null || true
 
 # 创建配置目录
 echo "📁 创建配置目录..."
@@ -81,10 +81,10 @@ else
 fi
 
 # 启动服务（使用host网络模式）
-echo "🚀 启动网络服务..."
+echo "🚀 启动历史数据服务..."
 echo "🏷️  使用镜像: $IMAGE_NAME"
 docker run -d \
-    --name voltageems-netsrv \
+    --name voltageems-hissrv \
     --network=host \
     --restart=unless-stopped \
     -v /extp/logs:/app/logs \
@@ -105,17 +105,17 @@ sleep 10
 # 检查服务状态（重试机制）
 echo "🔍 检查服务状态..."
 for i in {1..6}; do
-    if curl -f -s http://localhost:6006/netApi/health > /dev/null 2>&1; then
-        echo "✅ 网络服务启动成功！"
-        echo "📱 服务地址: http://localhost:6006"
-        echo "📊 健康检查: http://localhost:6006/netApi/health"
-        echo "📖 API文档: http://localhost:6006/docs"
+    if curl -f -s http://localhost:6004/hisApi/health > /dev/null 2>&1; then
+        echo "✅ 历史数据服务启动成功！"
+        echo "📱 服务地址: http://localhost:6004"
+        echo "📊 健康检查: http://localhost:6004/hisApi/health"
+        echo "📖 API文档: http://localhost:6004/docs"
         break
     else
         if [ $i -eq 6 ]; then
             echo "❌ 服务启动失败，请检查日志"
             echo "💡 提示：服务可能仍在启动中，请稍后手动验证"
-            docker logs --tail 20 voltageems-netsrv
+            docker logs --tail 20 voltageems-hissrv
             exit 1
         else
             echo "⏳ 等待服务响应... ($i/5)"
@@ -126,11 +126,11 @@ done
 
 echo "🎉 启动完成！"
 echo "🔧 管理命令:"
-echo "   查看日志: docker logs voltageems-netsrv"
-echo "   停止服务: docker stop voltageems-netsrv"
-echo "   重启服务: docker restart voltageems-netsrv"
+echo "   查看日志: docker logs voltageems-hissrv"
+echo "   停止服务: docker stop voltageems-hissrv"
+echo "   重启服务: docker restart voltageems-hissrv"
 echo ""
 echo "📊 服务数据:"
-echo "   配置文件: /extp/config/netsrv.yaml"
+echo "   配置文件: /extp/config/hissrv.yaml"
 echo "   日志路径: /extp/logs/"
 echo "   配置挂载: /extp/config/ -> /app/config/"

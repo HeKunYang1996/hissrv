@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Docker镜像构建脚本
+# Docker镜像构建脚本 - 历史数据服务
 # 生成aarch64格式的Docker镜像文件
 
-echo "🔨 构建Docker镜像..."
+echo "🔨 构建历史数据服务Docker镜像..."
 
 # 检查Docker是否安装
 if ! command -v docker &> /dev/null; then
@@ -26,8 +26,8 @@ else
     echo "✅ 从config.py读取到版本号: $VERSION"
 fi
 
-IMAGE_NAME="voltageems-netsrv:${VERSION}"
-FILE_NAME="voltageems-netsrv-${VERSION}.tar.gz"
+IMAGE_NAME="voltageems-hissrv:${VERSION}"
+FILE_NAME="voltageems-hissrv-${VERSION}.tar.gz"
 
 echo "📋 构建信息:"
 echo "   镜像名称: ${IMAGE_NAME}"
