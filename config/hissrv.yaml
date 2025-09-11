@@ -89,15 +89,6 @@ redis_source:
 
 # 数据存储配置
 data_storage:
-  # 数据类型映射
-  type_mapping:
-    "T": "telemetry"    # 遥测数据
-    "S": "signal"       # 遥信数据
-    "C": "control"      # 遥控数据
-    "A": "adjustment"   # 遥调数据
-    "M": "measurement"  # 测量数据
-    "E": "event"        # 事件数据
-  
   # 数据字段配置
   fields:
     common_tags:          # 公共标签
@@ -106,30 +97,7 @@ data_storage:
       - "source"          # 数据来源
     common_fields:        # 公共字段
       - "value"           # 数值
-      - "quality"         # 数据质量
       - "timestamp"       # 时间戳
-
-# 数据质量配置
-data_quality:
-  # 数据验证规则
-  validation:
-    enabled: true
-    rules:
-      value_range:        # 数值范围检查
-        enabled: true
-        telemetry:
-          min: -1000
-          max: 10000
-      timestamp_check:    # 时间戳检查
-        enabled: true
-        max_future_offset: 300   # 秒，允许的未来时间偏移
-        max_past_offset: 86400   # 秒，允许的过去时间偏移
-  
-  # 数据清洗配置
-  cleaning:
-    enabled: true
-    remove_duplicates: true      # 去除重复数据
-    interpolate_missing: false   # 插值缺失数据
 
 # 监控配置
 monitoring:

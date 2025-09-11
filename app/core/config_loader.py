@@ -85,9 +85,6 @@ class ConfigLoader:
         """获取数据存储配置"""
         return self.get_config('data_storage', {})
     
-    def get_data_quality_config(self) -> Dict[str, Any]:
-        """获取数据质量配置"""
-        return self.get_config('data_quality', {})
     
     def get_redis_source_config(self) -> Dict[str, Any]:
         """获取Redis数据源配置"""
@@ -179,9 +176,6 @@ class ConfigLoader:
         """获取Redis订阅模式"""
         return self.get_config('redis_source.subscribe_patterns', [])
     
-    def get_data_type_mapping(self) -> Dict[str, str]:
-        """获取数据类型映射"""
-        return self.get_config('data_storage.type_mapping', {})
 
 # 全局配置加载器实例
 config_loader = ConfigLoader()

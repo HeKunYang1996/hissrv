@@ -18,7 +18,6 @@ class DataStorage:
     
     def __init__(self):
         self.influxdb_client = influxdb_manager.get_client()
-        self.type_mapping = config_loader.get_data_type_mapping()
         self.common_tags = config_loader.get_config('data_storage.fields.common_tags', [])
         self.common_fields = config_loader.get_config('data_storage.fields.common_fields', [])
         
@@ -41,7 +40,6 @@ class DataStorage:
             point.tag("redis_key", str(data.redis_key))
             point.tag("point_id", str(data.point_id))
             point.tag("source", data.source)
-            point.tag("quality", data.quality.value)
             
             # 添加数值字段
             if isinstance(data.value, (int, float)):

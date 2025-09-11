@@ -11,7 +11,7 @@ from ..core.influxdb import influxdb_manager
 from ..core.config_loader import config_loader
 from ..models.data_models import (
     HistoryData, QueryRequest, QueryResponse, 
-    StatisticsRequest, StatisticsResponse, DataQuality
+    StatisticsRequest, StatisticsResponse
 )
 
 class QueryService:
@@ -21,7 +21,6 @@ class QueryService:
         self.influxdb_client = influxdb_manager.get_client()
         self.query_api = influxdb_manager.query_api
         self.bucket = getattr(influxdb_manager.client, '_bucket', 'history_data') if influxdb_manager.client else 'history_data'
-        self.type_mapping = config_loader.get_data_type_mapping()
         
     def _build_time_filter(self, start_time: datetime, end_time: datetime) -> str:
         """构建时间过滤器"""
@@ -138,7 +137,6 @@ class QueryService:
                 redis_key=redis_key,  # 直接使用Redis键
                 point_id=str(record.get('point_id', 'unknown')),
                 value=value,
-                quality=DataQuality(record.get('quality', 'GOOD')),
                 source=record.get('source', 'unknown')
             )
             

@@ -19,7 +19,6 @@ class DataCollector:
     def __init__(self):
         self.redis_client = redis_manager.get_client()
         self.subscribe_patterns = config_loader.get_subscribe_patterns()
-        self.data_type_mapping = config_loader.get_data_type_mapping()
         self.exclude_patterns = config_loader.get_config('redis_source.filters.exclude_patterns', [])
         
     def parse_redis_key(self, key: str) -> Dict[str, str]:

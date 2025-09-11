@@ -5,13 +5,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from enum import Enum
-
-class DataQuality(str, Enum):
-    """数据质量枚举"""
-    GOOD = "GOOD"        # 良好
-    BAD = "BAD"          # 坏值
-    UNCERTAIN = "UNCERTAIN"  # 不确定
 
 class HistoryData(BaseModel):
     """历史数据模型"""
@@ -19,7 +12,6 @@ class HistoryData(BaseModel):
     redis_key: str = Field(..., description="Redis键")
     point_id: str = Field(..., description="点位ID")
     value: Any = Field(..., description="数值")
-    quality: DataQuality = Field(DataQuality.GOOD, description="数据质量")
     source: str = Field(..., description="数据来源")
     
     class Config:
@@ -41,7 +33,6 @@ class RedisDataPoint(BaseModel):
             redis_key=parsed_key.get("channel_id", "unknown"),  # channel_id实际是完整的Redis键
             point_id=self.field,
             value=self.value,
-            quality=DataQuality.GOOD,
             source=parsed_key.get("source", "unknown")
         )
 
