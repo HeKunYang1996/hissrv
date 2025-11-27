@@ -89,6 +89,7 @@ async def query_history_data(
     point_id: str = Query(..., description="点位ID，必填参数", example="temperature"),
     start_time: Optional[str] = Query(None, description="开始时间，可选参数。支持多种格式：2025-08-21、2025-08-21 23:59:59、2025-08-21T23:59:59等", example="2025-08-21"),
     end_time: Optional[str] = Query(None, description="结束时间，可选参数。支持多种格式：2025-08-21、2025-08-21 23:59:59、2025-08-21T23:59:59等", example="2025-08-22"),
+    interval: int = Query(600, ge=1, description="数据采样间隔（秒），默认600秒（10分钟）。如果小于原始数据间隔则返回原始数据", example=600),
     page: int = Query(1, ge=1, description="页码，从1开始", example=1),
     page_size: int = Query(100, ge=1, le=1000, description="每页大小，最大1000条", example=100)
 ):
@@ -104,16 +105,24 @@ async def query_history_data(
       - ISO格式: 2025-08-21T23:59:59
       - 带时区: 2025-08-21T23:59:59Z
     - end_time: 结束时间（可选，不提供则默认为当前时间），格式同start_time
+    - interval: 数据采样间隔（秒），默认600秒（10分钟）
+      - 用于数据降采样，返回按指定间隔聚合的平均值
+      - 如果设置的间隔小于等于数据收集间隔，则返回原始数据（不进行聚合）
+      - 如果设置的间隔大于数据收集间隔，则进行降采样聚合
+      - 示例：interval=60 表示每1分钟返回一个数据点，interval=600 表示每10分钟返回一个数据点
     - page: 页码，从1开始（默认1）
     - page_size: 每页数据量，最大1000条（默认100）
     
     **示例:**
     ```
-    # 查询最近24小时数据
+    # 查询最近24小时数据（默认10分钟间隔降采样）
     GET /hisApi/data/query?redis_key=inst:1:M&point_id=1
     
-    # 查询指定时间段数据
-    GET /hisApi/data/query?redis_key=inst:1:M&point_id=1&start_time=2025-11-26&end_time=2025-11-27&page=1&page_size=100
+    # 查询原始数据（返回原始秒间隔数据，不聚合）
+    GET /hisApi/data/query?redis_key=inst:1:M&point_id=1&interval=1
+    
+    # 查询1分钟间隔降采样数据
+    GET /hisApi/data/query?redis_key=inst:1:M&point_id=1&start_time=2025-11-26&end_time=2025-11-27&interval=60
     ```
     """
     try:
@@ -146,6 +155,7 @@ async def query_history_data(
             redis_keys=[redis_key],  # 单个Redis键
             point_ids=[point_id],    # 单个点位ID
             sources=None,           # 不需要来源过滤
+            interval=interval,       # 数据采样间隔
             page=page,
             page_size=page_size
         )

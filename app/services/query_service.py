@@ -58,8 +58,15 @@ class QueryService:
         try:
             if not self.query_api:
                 logger.error("InfluxDB查询API不可用")
-                return QueryResponse(data=[], total=0, page=request.page, 
-                                   page_size=request.page_size, has_more=False)
+                return QueryResponse(
+                    status="error",
+                    message="InfluxDB查询API不可用",
+                    data=[], 
+                    total=0, 
+                    page=request.page, 
+                    page_size=request.page_size, 
+                    has_more=False
+                )
             
             # 设置默认时间范围（如果未提供）
             end_time = request.end_time or datetime.now(timezone.utc)
@@ -73,6 +80,16 @@ class QueryService:
             
             # 添加过滤器
             query_parts.extend(self._build_filters(request))
+            
+            # 获取数据收集间隔（配置文件中的采样间隔）
+            collection_interval = config_loader.get_data_collection_interval()
+            
+            # 只有当请求的采样间隔大于等于数据收集间隔时，才进行窗口聚合
+            # 如果请求间隔小于数据收集间隔，说明数据库中没有更细粒度的数据，无需聚合
+            if request.interval and request.interval > collection_interval:
+                # 将秒转换为 InfluxDB 的时间格式
+                interval_str = f"{request.interval}s"
+                query_parts.append(f'|> aggregateWindow(every: {interval_str}, fn: mean, createEmpty: false)')
             
             # 添加排序和分页
             offset = (request.page - 1) * request.page_size
@@ -102,6 +119,8 @@ class QueryService:
             has_more = len(history_data) == request.page_size
             
             return QueryResponse(
+                status="success",
+                message=f"成功查询到 {total} 条数据" if total > 0 else "未查询到数据",
                 data=history_data,
                 total=total,
                 page=request.page,
@@ -111,8 +130,15 @@ class QueryService:
             
         except Exception as e:
             logger.error(f"查询历史数据失败: {e}")
-            return QueryResponse(data=[], total=0, page=request.page, 
-                               page_size=request.page_size, has_more=False)
+            return QueryResponse(
+                status="error",
+                message=f"查询失败: {str(e)}",
+                data=[], 
+                total=0, 
+                page=request.page, 
+                page_size=request.page_size, 
+                has_more=False
+            )
     
     def _convert_record_to_history_data(self, record: Dict[str, Any]) -> Optional[HistoryData]:
         """转换记录为历史数据"""
@@ -154,9 +180,10 @@ class QueryService:
             if not self.query_api:
                 logger.error("InfluxDB查询API不可用")
                 return StatisticsResponse(
-                    channel_id=request.channel_id,
+                    status="error",
+                    message="InfluxDB查询API不可用",
+                    redis_key=request.redis_key,
                     point_id=request.point_id,
-                    data_type=request.data_type,
                     aggregation=request.aggregation,
                     interval=request.interval,
                     data=[]
@@ -191,6 +218,8 @@ class QueryService:
                 })
             
             return StatisticsResponse(
+                status="success",
+                message=f"成功查询到 {len(data)} 条统计数据" if data else "未查询到统计数据",
                 redis_key=request.redis_key,
                 point_id=request.point_id,
                 aggregation=request.aggregation,
@@ -201,6 +230,8 @@ class QueryService:
         except Exception as e:
             logger.error(f"查询统计数据失败: {e}")
             return StatisticsResponse(
+                status="error",
+                message=f"查询统计数据失败: {str(e)}",
                 redis_key=request.redis_key,
                 point_id=request.point_id,
                 aggregation=request.aggregation,

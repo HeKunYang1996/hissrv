@@ -43,6 +43,7 @@ class QueryRequest(BaseModel):
     redis_keys: Optional[List[str]] = Field(None, description="Redis键列表")
     point_ids: Optional[List[str]] = Field(None, description="点位ID列表")
     sources: Optional[List[str]] = Field(None, description="数据来源列表")
+    interval: int = Field(600, ge=1, description="数据采样间隔（秒），默认600秒（10分钟）")
     page: int = Field(1, ge=1, description="页码")
     page_size: int = Field(100, ge=1, le=1000, description="每页大小")
     
@@ -53,6 +54,8 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     """查询响应模型"""
+    status: str = Field("success", description="响应状态：success-成功, error-错误, partial-部分成功")
+    message: Optional[str] = Field(None, description="状态消息，错误时包含错误信息")
     data: List[HistoryData] = Field(..., description="数据列表")
     total: int = Field(..., description="总数量")
     page: int = Field(..., description="当前页码")
@@ -70,6 +73,8 @@ class StatisticsRequest(BaseModel):
 
 class StatisticsResponse(BaseModel):
     """统计响应模型"""
+    status: str = Field("success", description="响应状态：success-成功, error-错误")
+    message: Optional[str] = Field(None, description="状态消息，错误时包含错误信息")
     redis_key: str = Field(..., description="Redis键")
     point_id: str = Field(..., description="点位ID")
     aggregation: str = Field(..., description="聚合方式")
