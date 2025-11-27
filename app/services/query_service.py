@@ -61,10 +61,14 @@ class QueryService:
                 return QueryResponse(data=[], total=0, page=request.page, 
                                    page_size=request.page_size, has_more=False)
             
+            # 设置默认时间范围（如果未提供）
+            end_time = request.end_time or datetime.now(timezone.utc)
+            start_time = request.start_time or (end_time - timedelta(hours=24))
+            
             # 构建基础查询
             query_parts = [
                 f'from(bucket: "{self.bucket}")',
-                self._build_time_filter(request.start_time, request.end_time)
+                self._build_time_filter(start_time, end_time)
             ]
             
             # 添加过滤器

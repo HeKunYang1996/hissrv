@@ -30,11 +30,11 @@ class Settings(BaseSettings):
     # 开发环境Redis设置（通过.env文件覆盖）
     # REDIS_HOST: str = "192.168.30.62"  # 开发环境
     
-    # InfluxDB设置
-    INFLUXDB_URL: str = "http://localhost:8086"
-    INFLUXDB_TOKEN: str = "dyD_V9vxMvtTdaoWNArhzyNuZGHrTzI0rnI20PFiZkB9ss4LAphmAqBcLvpaQaN1D3eooPVfuTeKG39JFcbtgA=="
-    INFLUXDB_ORG: str = "voltage"
-    INFLUXDB_BUCKET: str = "history_data"
+    # InfluxDB设置 - 从配置文件读取
+    INFLUXDB_URL: str = ""
+    INFLUXDB_TOKEN: str = ""
+    INFLUXDB_ORG: str = ""
+    INFLUXDB_BUCKET: str = ""
     INFLUXDB_TIMEOUT: int = 30
     
     # 数据存储设置

@@ -38,8 +38,8 @@ class RedisDataPoint(BaseModel):
 
 class QueryRequest(BaseModel):
     """查询请求模型"""
-    start_time: datetime = Field(..., description="开始时间")
-    end_time: datetime = Field(..., description="结束时间")
+    start_time: Optional[datetime] = Field(None, description="开始时间，如果不提供则默认查询最近24小时")
+    end_time: Optional[datetime] = Field(None, description="结束时间，如果不提供则默认为当前时间")
     redis_keys: Optional[List[str]] = Field(None, description="Redis键列表")
     point_ids: Optional[List[str]] = Field(None, description="点位ID列表")
     sources: Optional[List[str]] = Field(None, description="数据来源列表")

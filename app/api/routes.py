@@ -96,20 +96,24 @@ async def query_history_data(
     查询单个点位的历史数据
     
     **参数说明:**
-    - redis_key: Redis键，如 "comsrv:device001:sensors"
-    - point_id: 点位ID，如 "temperature" 
-    - start_time: 开始时间（可选），支持格式：
+    - redis_key: Redis键，如 "inst:1:M"（必填）
+    - point_id: 点位ID，如 "1"（必填）
+    - start_time: 开始时间（可选，不提供则默认为最近24小时），支持格式：
       - 日期: 2025-08-21
       - 日期时间: 2025-08-21 23:59:59
       - ISO格式: 2025-08-21T23:59:59
       - 带时区: 2025-08-21T23:59:59Z
-    - end_time: 结束时间（可选），格式同start_time
-    - page: 页码，从1开始
-    - page_size: 每页数据量，最大1000条
+    - end_time: 结束时间（可选，不提供则默认为当前时间），格式同start_time
+    - page: 页码，从1开始（默认1）
+    - page_size: 每页数据量，最大1000条（默认100）
     
     **示例:**
     ```
-    GET /hisApi/data/query?redis_key=comsrv:device001:sensors&point_id=temperature&start_time=2025-08-21&end_time=2025-08-22&page=1&page_size=100
+    # 查询最近24小时数据
+    GET /hisApi/data/query?redis_key=inst:1:M&point_id=1
+    
+    # 查询指定时间段数据
+    GET /hisApi/data/query?redis_key=inst:1:M&point_id=1&start_time=2025-11-26&end_time=2025-11-27&page=1&page_size=100
     ```
     """
     try:
