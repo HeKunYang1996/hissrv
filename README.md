@@ -108,17 +108,12 @@ GET /hisApi/data/query?start_time=2024-01-01T00:00:00Z&end_time=2024-01-02T00:00
 - `page`: 页码 (默认: 1)
 - `page_size`: 每页大小 (默认: 100, 最大: 1000)
 
-#### 3. 统计查询
+#### 3. 获取最新数据
 ```
-GET /hisApi/data/statistics?start_time=2024-01-01T00:00:00Z&end_time=2024-01-02T00:00:00Z&channel_id=1001&point_id=1&data_type=T&aggregation=mean&interval=1h
-```
-
-#### 4. 获取最新数据
-```
-GET /hisApi/data/latest?channel_id=1001&point_id=1&data_type=T
+GET /hisApi/data/latest?redis_key=inst:1:M&point_id=1
 ```
 
-#### 5. 系统指标
+#### 4. 系统指标
 ```
 GET /hisApi/metrics
 ```
